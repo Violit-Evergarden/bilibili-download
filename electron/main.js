@@ -18,6 +18,7 @@ const NODE_ENV = ''
 const store = new Store()
 
 //testBranch
+//testBranchg
 if(!fs.existsSync(store.get('downPath'))){
   fs.mkdir('Downloads',(err)=>{
     store.set('downPath',path.join(path.resolve(),'Downloads'))
