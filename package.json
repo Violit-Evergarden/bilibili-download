@@ -1,0 +1,67 @@
+{
+  "name": "vue3study",
+  "version": "0.0.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
+    "start": "electron .",
+    "electron:build": "vite build && electron-builder"
+  },
+  "dependencies": {
+    "@koa/router": "^10.1.1",
+    "animate.css": "^4.1.1",
+    "axios": "^0.26.1",
+    "child_process": "^1.0.2",
+    "electron-store": "^8.1.0",
+    "element-plus": "^2.2.25",
+    "encoding": "^0.1.13",
+    "koa": "^2.13.4",
+    "koa-body": "^4.2.0",
+    "koa-static": "^5.0.0",
+    "koa2-cors": "^2.0.6",
+    "node-fetch": "^2.6.7",
+    "progress-stream": "^2.0.0",
+    "protobufjs": "^6.11.2",
+    "request": "^2.88.2",
+    "vue": "^3.2.41",
+    "vue-router": "^4.1.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^3.2.0",
+    "child_process": "^1.0.2",
+    "electron": "^17.0.0",
+    "electron-builder": "^23.6.0",
+    "electron-reloader": "^1.2.3",
+    "sass": "^1.56.1",
+    "vite": "^3.2.3",
+    "vite-plugin-electron-renderer": "^0.11.3"
+  },
+  "build": {
+    "appId": "com.dweb.your-app",
+    "productName": "TTK",
+    "asar": true,
+    "extraResources": [
+      "src/assets/**"
+    ],
+    "copyright": "Copyright © 2021 <your-name>",
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist_electron"
+    }
+  }
+}
