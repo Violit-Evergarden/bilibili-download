@@ -17,6 +17,7 @@ require('./server/app.js')
 const NODE_ENV = ''
 const store = new Store()
 
+//testBranch
 if(!fs.existsSync(store.get('downPath'))){
   fs.mkdir('Downloads',(err)=>{
     store.set('downPath',path.join(path.resolve(),'Downloads'))
