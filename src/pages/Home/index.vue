@@ -61,7 +61,7 @@ dDd<template>
             :key="item.quality"
             :label="item.new_description + '/' + item.size + 'M'"
             :value="item.quality"
-            :disabled="item.quality>16"
+            :disabled="item.quality > 16"
           >
           </el-option>
         </el-select>
@@ -69,135 +69,136 @@ dDd<template>
       </div>
     </div>
   </transition>
-  <div class="gushiBox" :style="{opacity:focusAn && !isItem ?1:0}">
-    <div class="content">「 {{guShiData.content}} 」</div>
-    <div class="origin">—— {{guShiData.origin}}</div>
+  <div class="gushiBox" :style="{ opacity: focusAn && !isItem ? 1 : 0 }">
+    <div class="content">「 {{ guShiData.content }} 」</div>
+    <div class="origin">—— {{ guShiData.origin }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive,onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import {ipcRenderer,clipboard} from 'electron'
-import {useRouter} from 'vue-router'
-import axios from 'axios'
-const nodeFetch = require('node-fetch')
-const fs = require('fs')
-const request = require('request')
+import { ref, reactive, onUnmounted } from "vue";
+import { ElMessage } from "element-plus";
+import { ipcRenderer, clipboard } from "electron";
+import { useRouter } from "vue-router";
+import axios from "axios";
+const nodeFetch = require("node-fetch");
+const fs = require("fs");
+const request = require("request");
 
-const router = useRouter()
-const Store = require('electron-store')
-const store = new Store()
+const router = useRouter();
+const Store = require("electron-store");
+const store = new Store();
 
+const guShiData = reactive({});
+axios.get("https://v1.jinrishici.com/all.json").then((res) => {
+  guShiData.content = res.data.content;
+  guShiData.origin = res.data.origin;
+});
 
-const guShiData = reactive({})
-axios.get('https://v1.jinrishici.com/all.json').then(res=>{
-  guShiData.content = res.data.content
-  guShiData.origin = res.data.origin
-})
-
-
-const focusAn = ref(false)
+const focusAn = ref(false);
 function getFocus() {
-  focusAn.value = true
+  focusAn.value = true;
 }
 function getValid() {
-  focusAn.value = false
+  focusAn.value = false;
 }
 
-const isItem = ref(false)
-const url = ref('')
+const isItem = ref(false);
+const url = ref("");
 
-let timer
-const inpVal = ref(null)
-const spyClipBoard = ()=>{
-  let urlStr = null
+let timer;
+const inpVal = ref(null);
+const spyClipBoard = () => {
+  let urlStr = null;
   timer = setInterval(() => {
-    const text = clipboard.readText()
-    if((text.match('video/(.*?)/')||text.startsWith('BV'||'bv')) && urlStr!==text) {
-      if(store.get('spyClickBorad')){
-        url.value = text
-        inpVal.value.focus()
-        urlStr = text
+    const text = clipboard.readText();
+    if (
+      (text.match("video/(.*?)/") || text.startsWith("BV" || "bv")) &&
+      urlStr !== text
+    ) {
+      if (store.get("spyClickBorad")) {
+        url.value = text;
+        inpVal.value.focus();
+        urlStr = text;
       }
-      if(store.get('autoShow')) ipcRenderer.send('autoShow')
+      if (store.get("autoShow")) ipcRenderer.send("autoShow");
     }
   }, 1000);
-}
-store.get('spyClickBorad') || store.get('autoShow')?spyClipBoard():null
-onUnmounted(()=>{
-  clearTimeout(timer)
-  timer = null
-})
+};
+store.get("spyClickBorad") || store.get("autoShow") ? spyClipBoard() : null;
+onUnmounted(() => {
+  clearTimeout(timer);
+  timer = null;
+});
 
-ipcRenderer.on('getInpUrl',(evt,text)=>{
-  url.value=text
-  document.getElementById('inpVal').focus()
-})
+ipcRenderer.on("getInpUrl", (evt, text) => {
+  url.value = text;
+  document.getElementById("inpVal").focus();
+});
 
 async function getVideoInfo() {
-  const inpStr = url.value
-  url.value = ''
-  const bv = inpStr.startsWith('BV'||'bv') ? inpStr : getBv(inpStr)
-  if (!bv) return ElMessage.error('请输入BV号或视频播放地址！')
-  const infoUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bv}`
-  await getData(infoUrl)
-  await getUpInfo(ids.mid)
-  await getFormats(ids.cid, ids.aid)
-  isItem.value = true
+  const inpStr = url.value;
+  url.value = "";
+  const bv = inpStr.startsWith("BV" || "bv") ? inpStr : getBv(inpStr);
+  if (!bv) return ElMessage.error("请输入BV号或视频播放地址！");
+  const infoUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bv}`;
+  await getData(infoUrl);
+  await getUpInfo(ids.mid);
+  await getFormats(ids.cid, ids.aid);
+  isItem.value = true;
 }
 function getBv(url) {
-  const ex = 'video/(.*?)/'
-  return url.match(ex) ? url.match(ex)[1] : null
+  const ex = "video/(.*?)/";
+  return url.match(ex) ? url.match(ex)[1] : null;
 }
 
-let listData = {}
-const curData = reactive({})
-const ids = reactive({})
-const stat = reactive({})
-const upData = reactive({})
-let supportFormats = reactive([])
+let listData = {};
+const curData = reactive({});
+const ids = reactive({});
+const stat = reactive({});
+const upData = reactive({});
+let supportFormats = reactive([]);
 // 转换代理url
 const convertProxy = (url) =>
-  `http://localhost:3002/proxy?url=${encodeURIComponent(url)}`
+  `http://localhost:3002/proxy?url=${encodeURIComponent(url)}`;
 const downVideoProxy = (url, quality) =>
   `http://localhost:3002/api/download?url=${encodeURIComponent(url)}&bvid=${
     ids.bvid
   }&params=${encodeURIComponent(
     `avid=${ids.aid}&cid=${ids.cid}&otype=json&qn=${quality}&fnval=0`
-  )}`
-  //'https://api.bilibili.com/x/player/playurl?avid=%s&cid=%s&qn=%s&type=&otype=json&fnver=0&fnval=16&fourk=1' % (avid, cid, qn)
+  )}`;
+//'https://api.bilibili.com/x/player/playurl?avid=%s&cid=%s&qn=%s&type=&otype=json&fnver=0&fnval=16&fourk=1' % (avid, cid, qn)
 //获取视频信息
 function getData(url) {
-  supportFormats = reactive([])
+  supportFormats = reactive([]);
   return new Promise((resolve) => {
     fetch(convertProxy(url)).then(async (res) => {
-      const resJson = await res.json()
-      listData = resJson.data
-      curData.cover = resJson.data.pic
-      curData.view = resJson.data.stat.view
-      curData.title = resJson.data.title
-      curData.pubTime = resJson.data.ctime
-      curData.evaluate = resJson.data.desc
-      curData.up = resJson.data.owner.name
-      curData.long = resJson.data.pages[0].duration
-      curData.upFace = resJson.data.owner.face
+      const resJson = await res.json();
+      listData = resJson.data;
+      curData.cover = resJson.data.pic;
+      curData.view = resJson.data.stat.view;
+      curData.title = resJson.data.title;
+      curData.pubTime = resJson.data.ctime;
+      curData.evaluate = resJson.data.desc;
+      curData.up = resJson.data.owner.name;
+      curData.long = resJson.data.pages[0].duration;
+      curData.upFace = resJson.data.owner.face;
 
-      ids.aid = resJson.data.aid
-      ids.bvid = resJson.data.bvid
-      ids.cid = resJson.data.cid
-      ids.mid = resJson.data.owner.mid
+      ids.aid = resJson.data.aid;
+      ids.bvid = resJson.data.bvid;
+      ids.cid = resJson.data.cid;
+      ids.mid = resJson.data.owner.mid;
 
-      stat.like = resJson.data.stat.like
-      curData.view = `已观看${resJson.data.stat.view}次`
-      stat.coin = resJson.data.stat.coin
-      stat.follow = resJson.data.stat.favorite
-      stat.share = resJson.data.stat.share
+      stat.like = resJson.data.stat.like;
+      curData.view = `已观看${resJson.data.stat.view}次`;
+      stat.coin = resJson.data.stat.coin;
+      stat.follow = resJson.data.stat.favorite;
+      stat.share = resJson.data.stat.share;
 
-      getDM()
-      resolve()
-    })
-  })
+      getDM();
+      resolve();
+    });
+  });
 }
 // 获取up主信息
 function getUpInfo(mid) {
@@ -206,70 +207,72 @@ function getUpInfo(mid) {
       `https://api.bilibili.com/x/space/acc/info?mid=${mid}&jsonp=jsonp`
     )
   ).then(async (res) => {
-    const resJson = await res.json()
-    upData.face = resJson.data.face
-    upData.sign = resJson.data.sign
-    upData.name = resJson.data.name
-  })
+    const resJson = await res.json();
+    upData.face = resJson.data.face;
+    upData.sign = resJson.data.sign;
+    upData.name = resJson.data.name;
+  });
 }
 // 获取视频支持格式
 function getFormats(cid, avid) {
-  const url = 'https://api.bilibili.com/x/player/playurl'
-  fetch(convertProxy(`${url}?fnval=80&cid=${cid}&avid=${avid}`)).then(async (res) => {
-    const resJson = await res.json()
-    const data = resJson.data || resJson.result
-    supportFormats.push(...data.support_formats) // 没有获得cookie只能下载720
-    getVideoSize(avid, cid)
-  })
+  const url = "https://api.bilibili.com/x/player/playurl";
+  fetch(convertProxy(`${url}?fnval=80&cid=${cid}&avid=${avid}`)).then(
+    async (res) => {
+      const resJson = await res.json();
+      const data = resJson.data || resJson.result;
+      supportFormats.push(...data.support_formats); // 没有获得cookie只能下载720
+      getVideoSize(avid, cid);
+    }
+  );
 }
 // 获取文件大小
 function getVideoSize(avid, cid) {
   supportFormats.forEach((sf) => {
-    const url = 'https://api.bilibili.com/x/player/playurl'
+    const url = "https://api.bilibili.com/x/player/playurl";
     fetch(
       convertProxy(
         `${url}?avid=${avid}&cid=${cid}&otype=json&qn=${sf.quality}&fnval=0`
       )
     ).then(async (res) => {
-      const resJson = await res.json()
-      const data = resJson.data || resJson.result
-      sf.size = (data.durl[0].size / 1024 / 1024).toFixed(1)
-    })
-  })
+      const resJson = await res.json();
+      const data = resJson.data || resJson.result;
+      sf.size = (data.durl[0].size / 1024 / 1024).toFixed(1);
+    });
+  });
 }
 //格式化时间(发布)
 function convertDate(date) {
-  const recordDate = new Date(date * 1000)
-  const year = recordDate.getFullYear()
-  const month = recordDate.getMonth() + 1
-  const day = recordDate.getDate()
-  const hours = recordDate.getHours()
-  const minutes = recordDate.getMinutes()
+  const recordDate = new Date(date * 1000);
+  const year = recordDate.getFullYear();
+  const month = recordDate.getMonth() + 1;
+  const day = recordDate.getDate();
+  const hours = recordDate.getHours();
+  const minutes = recordDate.getMinutes();
   return `${year}年${month}月${day}日 ${
-    hours.toString().length === 1 ? '0' + hours : hours
-  }:${minutes.toString().length === 1 ? '0' + minutes : minutes}`
+    hours.toString().length === 1 ? "0" + hours : hours
+  }:${minutes.toString().length === 1 ? "0" + minutes : minutes}`;
 }
 //格式化时间（视频时长）
 function convertVideoTime(se) {
-  let second = se % 60
-  let term = parseInt(se / 60)
-  let minute = term >= 60 ? term - 60 : term
-  let hours = parseInt(se / 3600) > 0 ? parseInt(se / 3600) : ''
+  let second = se % 60;
+  let term = parseInt(se / 60);
+  let minute = term >= 60 ? term - 60 : term;
+  let hours = parseInt(se / 3600) > 0 ? parseInt(se / 3600) : "";
   let timeStr = hours
-    ? autoLength(hours) + ':' + autoLength(minute) + ':' + autoLength(second)
-    : autoLength(minute) + ':' + autoLength(second)
-  return timeStr
+    ? autoLength(hours) + ":" + autoLength(minute) + ":" + autoLength(second)
+    : autoLength(minute) + ":" + autoLength(second);
+  return timeStr;
 }
 function autoLength(num) {
-  return num.toString().length === 1 ? '0' + num : num
+  return num.toString().length === 1 ? "0" + num : num;
 }
-function formatFileName(str){
-  const list = ['\\','/',':','*','?','"','<','>','|',' ','：','？']
-  let newStr = str
-  list.forEach(item=>{
-    newStr = newStr.replaceAll(item,'')
-  })
-  return newStr
+function formatFileName(str) {
+  const list = ["\\", "/", ":", "*", "?", '"', "<", ">", "|", " ", "：", "？"];
+  let newStr = str;
+  list.forEach((item) => {
+    newStr = newStr.replaceAll(item, "");
+  });
+  return newStr;
 }
 
 // const logPro = (reader)=>{
@@ -283,12 +286,13 @@ function formatFileName(str){
 //     })
 //   }
 //下载弹幕
-function getDM(){
-  let url = `https://api.bilibili.com/x/v1/dm/list.so?oid=${ids.cid}`
-  let fullPath = store.get('downPath')+'\\'+formatFileName(curData.title)+'.txt'
-  const writer = fs.createWriteStream(fullPath)
-  nodeFetch(url).then(async res=>{
-    await res.body.pipe(writer)
+function getDM() {
+  let url = `https://api.bilibili.com/x/v1/dm/list.so?oid=${ids.cid}`;
+  let fullPath =
+    store.get("downPath") + "\\" + formatFileName(curData.title) + ".txt";
+  const writer = fs.createWriteStream(fullPath);
+  nodeFetch(url).then(async (res) => {
+    await res.body.pipe(writer);
     // const out = fs.createWriteStream(fullPath)
     // const reader = fs.createReadStream(fullPath)
     // reader.on('data',data=>{
@@ -296,30 +300,38 @@ function getDM(){
     //   console.log(text)
     // })
     // reader.on('end',()=>out.end())
-  })
+  });
 }
 // 下载视频
-const qualityValue = ref(16)
-const isDownloading = ref(true)
-function download (){
-  let downloadingList = store.get('downloadingList').filter(item=>item.downStatus)
-  if(downloadingList.length===store.get('downNumValue')) return ElMessage.warning(`同时下载任务数量不能超过${store.get('downNumValue')}个`)
-  const url = 'https://api.bilibili.com/x/player/playurl'
-  const downloadUrl = downVideoProxy(url, qualityValue.value)
-  ipcRenderer.send('download',JSON.stringify({
-    downloadUrl,
-    id:ids.aid,
-    cover:convertProxy(curData.cover),
-    title:formatFileName(curData.title),
-    duration:convertVideoTime(curData.long)
-  }))
-  isDownloading.value = false
-  isItem.value = false
-  ElMessage('正在下载...')
-  store.get('downBarrage')?getDM():null
-  ipcRenderer.on('addNewItem',()=>{
-    store.get('keepInHome')?null:router.push('/download')
-  })
+const qualityValue = ref(16);
+const isDownloading = ref(true);
+function download() {
+  let downloadingList = store
+    .get("downloadingList")
+    .filter((item) => item.downStatus);
+  if (downloadingList.length === store.get("downNumValue"))
+    return ElMessage.warning(
+      `同时下载任务数量不能超过${store.get("downNumValue")}个`
+    );
+  const url = "https://api.bilibili.com/x/player/playurl";
+  const downloadUrl = downVideoProxy(url, qualityValue.value);
+  ipcRenderer.send(
+    "download",
+    JSON.stringify({
+      downloadUrl,
+      id: ids.aid,
+      cover: convertProxy(curData.cover),
+      title: formatFileName(curData.title),
+      duration: convertVideoTime(curData.long),
+    })
+  );
+  isDownloading.value = false;
+  isItem.value = false;
+  ElMessage("正在下载...");
+  store.get("downBarrage") ? getDM() : null;
+  ipcRenderer.on("addNewItem", () => {
+    store.get("keepInHome") ? null : router.push("/download");
+  });
 }
 </script>
 
@@ -337,7 +349,7 @@ function download (){
   object-fit: cover;
   transition: 0.25s;
 }
-.gushiBox{
+.gushiBox {
   position: absolute;
   bottom: 15%;
   left: 50%;
@@ -346,19 +358,19 @@ function download (){
   font-size: 13px;
   width: 35%;
   height: 53px;
-  transition: .25s;
+  transition: 0.25s;
   padding: 16px;
   border-radius: 10px;
-  &:hover{
+  &:hover {
     background-color: #9499a05d;
     backdrop-filter: blur(10px) saturate(1.5);
-    .origin{
+    .origin {
       opacity: 1;
     }
   }
-  .origin{
+  .origin {
     margin-top: 5px;
-    transition: .25s;
+    transition: 0.25s;
     opacity: 0;
   }
 }
