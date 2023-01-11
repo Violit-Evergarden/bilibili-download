@@ -29,6 +29,7 @@ if (!fs.existsSync(store.get('downPath'))) {
 
 const listArray = ['downloadingList', 'completedList']
 listArray.forEach(item => store.get(item) ? null : store.set(item, []))
+store.get('downNumValue')?null:store.set('downNumValue',3)
 
 
 
